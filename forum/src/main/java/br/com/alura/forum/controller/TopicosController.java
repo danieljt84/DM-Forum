@@ -2,24 +2,54 @@ package br.com.alura.forum.controller;
 
 
 
-import java.util.Arrays;
+import java.net.URI;
 import java.util.List;
 
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import br.com.alura.forum.controller.dto.TopicoDto;
-import br.com.alura.forum.models.Curso;
+import br.com.alura.forum.controller.form.TopicoForm;
 import br.com.alura.forum.models.Topico;
+import br.com.alura.forum.repository.CursoRepository;
+import br.com.alura.forum.repository.TopicoRepository;
 
 @RestController
+@RequestMapping(value="/topicos")
 public class TopicosController {
 	
-	@RequestMapping("/topicos")
-	public List<TopicoDto> lista(){
-		Topico topico = new Topico("titulo", "mensagem", new Curso("Spring","Desenvolvimento"));
+	@Autowired
+	private TopicoRepository topicoRepository;
+	@Autowired
+	private CursoRepository cursoRepository;
+	
+	@GetMapping
+	public List<TopicoDto> lista(String nomeCurso){
 		
-		return TopicoDto.converte(Arrays.asList(topico,topico,topico));
+		if(nomeCurso==null) {
+			List<Topico> topicos =topicoRepository.findAll();
+			return TopicoDto.converte(topicos);	
+		}else {
+			List<Topico> topicos =topicoRepository.findByCursoNome(nomeCurso);
+			return TopicoDto.converte(topicos);	
+		}
+	}
+	
+	@PostMapping
+	public ResponseEntity<TopicoDto> cadastrar(@RequestBody @Valid TopicoForm form, UriComponentsBuilder builder){
+		Topico topico =form.converte(cursoRepository);
+		topicoRepository.save(topico);
+		
+		URI uri = builder.path("/topicos/{id}").buildAndExpand(topico.getId()).toUri();
+		return ResponseEntity.created(uri).body(new TopicoDto(topico));
 		
 	}
 
